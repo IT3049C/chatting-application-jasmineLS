@@ -1,4 +1,3 @@
-// DOM Elements
 const nameInput = document.getElementById("my-name-input");
 const myMessage = document.getElementById("my-message-input");
 const sendButton = document.getElementById("send-button");
@@ -6,10 +5,23 @@ const chatBox = document.getElementById("chat");
 
 const serverURL = `https://it3049c-chat.fly.dev/messages`;
 
-// Format the message
+async function fetchMessages() {
+  try {
+    const response = await fetch(serverURL);
+    if (!response.ok) {
+      throw new Error('Failed to fetch messages');
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    return [];
+  }
+}
+
 function formatMessage(message, myNameInput) {
   const time = new Date(message.timestamp);
-  const formattedTime = `${time.getHours()}:${time.getMinutes()}`;
+  const formattedTime = `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}`;
 
   if (myNameInput === message.sender) {
     return `
@@ -36,36 +48,15 @@ function formatMessage(message, myNameInput) {
   }
 }
 
-// Fetch messages from server
-async function fetchMessages() {
-  try {
-    const response = await fetch(serverURL);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const messages = await response.json();
-    return messages;
-  } catch (error) {
-    console.error('Error fetching messages:', error);
-    return [];
-  }
-}
-
-// Update messages in chat box
 async function updateMessages() {
-  try {
-    const messages = await fetchMessages();
-    let formattedMessages = "";
-    messages.forEach(message => {
-      formattedMessages += formatMessage(message, nameInput.value);
-    });
-    chatBox.innerHTML = formattedMessages;
-  } catch (error) {
-    console.error('Error updating messages:', error);
-  }
+  const messages = await fetchMessages();
+  let formattedMessages = '';
+  messages.forEach(message => {
+    formattedMessages += formatMessage(message, nameInput.value);
+  });
+  chatBox.innerHTML = formattedMessages;
 }
 
-// Send message function
 async function sendMessages(username, text) {
   const newMessage = {
     sender: username,
@@ -73,35 +64,22 @@ async function sendMessages(username, text) {
     timestamp: new Date().toISOString()
   };
 
-  try {
-    const response = await fetch(serverURL, {
-      method: "POST",
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(newMessage)
-    });
+  const response = await fetch(serverURL, {
+    method: "POST",
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(newMessage)
+  });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    // Immediately update UI with the new message
-    const currentMessages = await fetchMessages();
-    let formattedMessages = "";
-    currentMessages.forEach(message => {
-      formattedMessages += formatMessage(message, nameInput.value);
-    });
-    chatBox.innerHTML = formattedMessages;
-
-    return response;
-  } catch (error) {
-    console.error('Error sending message:', error);
-    throw error;
+  if (response.status === 201) {
+    // Immediately add the message to the chat
+    chatBox.innerHTML += formatMessage(newMessage, username);
   }
+
+  return response;
 }
 
-// Event listener for send button
 sendButton.addEventListener("click", async function(event) {
   event.preventDefault();
   const sender = nameInput.value;
@@ -116,7 +94,6 @@ sendButton.addEventListener("click", async function(event) {
   }
 });
 
-// Handle Enter key in message input
 myMessage.addEventListener("keypress", async function(event) {
   if (event.key === "Enter") {
     event.preventDefault();
@@ -133,7 +110,7 @@ myMessage.addEventListener("keypress", async function(event) {
   }
 });
 
-// Initial load of messages
+// Initially load the messages
 updateMessages();
 
 // Update messages every 10 seconds
