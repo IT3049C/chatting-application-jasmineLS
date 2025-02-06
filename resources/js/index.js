@@ -22,7 +22,6 @@ function formatMessage(message, username) {
   const time = new Date(message.timestamp);
   const formattedTime = `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}`;
 
-
   if (username === message.sender) {
     return `
       <div class="mine messages">
@@ -44,6 +43,9 @@ async function updateMessages() {
   const messages = await fetchMessages();
   const formattedMessages = messages.map(message => formatMessage(message, nameInput.value)).join('');
   chatBox.innerHTML = formattedMessages;
+
+
+  chatBox.scrollTop = chatBox.scrollHeight;
 }
 
 async function sendMessages(username, text) {
@@ -53,21 +55,28 @@ async function sendMessages(username, text) {
     timestamp: new Date().toISOString()
   };
 
-  const response = await fetch(serverURL, {
-    method: "POST",
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(newMessage)
-  });
+  try {
+    const response = await fetch(serverURL, {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(newMessage)
+    });
 
-  if (response.ok) {
-    chatBox.innerHTML += formatMessage(newMessage, username);
-  } else {
-    console.error('Failed to send message');
+    if (response.ok) {
+      const formattedMessage = formatMessage(newMessage, username);
+      chatBox.innerHTML += formattedMessage; 
+      chatBox.scrollTop = chatBox.scrollHeight; 
+    } else {
+      console.error('Failed to send message');
+    }
+
+    return response;
+  } catch (error) {
+    console.error('Error sending message:', error);
+    alert('Error sending message. Please check your connection.');
   }
-
-  return response;
 }
 
 function handleSendMessage() {
@@ -82,6 +91,8 @@ function handleSendMessage() {
       .catch((error) => {
         console.error('Error while sending message:', error);
       });
+  } else {
+    alert('Please enter both a name and a message.');
   }
 }
 
@@ -97,7 +108,9 @@ myMessage.addEventListener("keypress", (event) => {
   }
 });
 
+
 updateMessages();
 
 const MILLISECONDS_IN_TEN_SECONDS = 10000;
 setInterval(updateMessages, MILLISECONDS_IN_TEN_SECONDS);
+
