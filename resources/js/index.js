@@ -11,38 +11,30 @@ async function fetchMessages() {
     if (!response.ok) {
       throw new Error('Failed to fetch messages');
     }
-    const data = await response.json();
-    return data;
+    return await response.json(); 
   } catch (error) {
     console.error('Error fetching messages:', error);
-    return [];
+    return []; 
   }
 }
 
-function formatMessage(message, myNameInput) {
+function formatMessage(message, username) {
   const time = new Date(message.timestamp);
   const formattedTime = `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}`;
 
-  if (myNameInput === message.sender) {
+
+  if (username === message.sender) {
     return `
       <div class="mine messages">
-        <div class="message">
-          ${message.text}
-        </div>
-        <div class="sender-info">
-          ${formattedTime}
-        </div>
+        <div class="message">${message.text}</div>
+        <div class="sender-info">${formattedTime}</div>
       </div>
     `;
   } else {
     return `
       <div class="yours messages">
-        <div class="message">
-          ${message.text}
-        </div>
-        <div class="sender-info">
-          ${message.sender} ${formattedTime}
-        </div>
+        <div class="message">${message.text}</div>
+        <div class="sender-info">${message.sender} ${formattedTime}</div>
       </div>
     `;
   }
@@ -50,10 +42,7 @@ function formatMessage(message, myNameInput) {
 
 async function updateMessages() {
   const messages = await fetchMessages();
-  let formattedMessages = '';
-  messages.forEach(message => {
-    formattedMessages += formatMessage(message, nameInput.value);
-  });
+  const formattedMessages = messages.map(message => formatMessage(message, nameInput.value)).join('');
   chatBox.innerHTML = formattedMessages;
 }
 
@@ -72,40 +61,39 @@ async function sendMessages(username, text) {
     body: JSON.stringify(newMessage)
   });
 
-  if (response.status === 201) {
+  if (response.ok) {
     chatBox.innerHTML += formatMessage(newMessage, username);
+  } else {
+    console.error('Failed to send message');
   }
 
   return response;
 }
 
-sendButton.addEventListener("click", async function(event) {
-  event.preventDefault();
+function handleSendMessage() {
   const sender = nameInput.value;
-  const message = myMessage.value;
-  if (sender.trim() && message.trim()) {
-    try {
-      await sendMessages(sender, message);
-      myMessage.value = "";
-    } catch (error) {
-      console.error('Error in click handler:', error);
-    }
+  const message = myMessage.value.trim();
+
+  if (sender && message) {
+    sendMessages(sender, message)
+      .then(() => {
+        myMessage.value = ''; 
+      })
+      .catch((error) => {
+        console.error('Error while sending message:', error);
+      });
   }
+}
+
+sendButton.addEventListener("click", (event) => {
+  event.preventDefault();
+  handleSendMessage(); 
 });
 
-myMessage.addEventListener("keypress", async function(event) {
+myMessage.addEventListener("keypress", (event) => {
   if (event.key === "Enter") {
     event.preventDefault();
-    const sender = nameInput.value;
-    const message = myMessage.value;
-    if (sender.trim() && message.trim()) {
-      try {
-        await sendMessages(sender, message);
-        myMessage.value = "";
-      } catch (error) {
-        console.error('Error in keypress handler:', error);
-      }
-    }
+    handleSendMessage(); 
   }
 });
 
