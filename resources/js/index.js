@@ -73,7 +73,6 @@ async function sendMessages(username, text) {
   });
 
   if (response.status === 201) {
-    // Immediately add the message to the chat
     chatBox.innerHTML += formatMessage(newMessage, username);
   }
 
@@ -110,9 +109,7 @@ myMessage.addEventListener("keypress", async function(event) {
   }
 });
 
-// Initially load the messages
 updateMessages();
 
-// Update messages every 10 seconds
 const MILLISECONDS_IN_TEN_SECONDS = 10000;
 setInterval(updateMessages, MILLISECONDS_IN_TEN_SECONDS);
